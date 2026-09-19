@@ -66,3 +66,6 @@ require __DIR__.'/auth.php';
 |--------------------------------------------------------------------------
 */
 Route::get('/{post}', [HomeController::class, 'show'])->name('post.show');
+Route::get('/health', function () {
+    return response('OK', 200);
+});
