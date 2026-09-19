@@ -1,3 +1,16 @@
+FROM node:22 AS frontend
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci
+
+COPY . .
+
+RUN npm run build
+
+
 FROM php:8.3-cli
 
 RUN apt-get update && apt-get install -y \
@@ -17,7 +30,11 @@ RUN composer install \
     --optimize-autoloader \
     --no-interaction
 
-RUN mkdir -p storage/framework/cache \
+# Copy Vite production build from Node stage
+COPY --from=frontend /app/public/build /var/www/public/build
+
+RUN mkdir -p \
+    storage/framework/cache \
     storage/framework/sessions \
     storage/framework/views \
     storage/logs \
