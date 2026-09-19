@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,600&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-white text-ink font-sans antialiased;
+    }
+
+    .headline {
+        font-feature-settings: 'onum' 1;
+    }
+
+    :focus-visible {
+        @apply outline-none ring-2 ring-blush-500 ring-offset-2;
+    }
+}
+
+@layer components {
+    .btn-pink {
+        @apply inline-flex items-center gap-2 rounded-full bg-blush-500 px-5 py-2.5
+               text-sm font-medium text-white transition
+               hover:bg-blush-600 active:bg-blush-700;
+    }
+
+    .btn-dark {
+        @apply inline-flex items-center justify-center rounded-lg bg-forest px-5 py-3
+               text-sm font-medium text-white transition hover:bg-forest/90;
+    }
+
+    .pill {
+        @apply inline-flex items-center rounded-full border border-blush-200 bg-blush-50
+               px-2.5 py-1 text-[11px] font-medium text-blush-700;
+    }
+
+    .panel {
+        @apply rounded-2xl border border-blush-100 bg-white p-6 shadow-soft;
+    }
+
+    .brush-quote {
+        background-image: radial-gradient(ellipse at center, #FBD3DC 0%, #FBD3DC 62%, transparent 72%);
+    }
+
+    .field {
+        @apply w-full rounded-lg border-blush-200 bg-white text-sm placeholder-gray-400
+               focus:border-blush-400 focus:ring-blush-400;
+    }
+
+    .label {
+        @apply mb-1.5 block text-sm font-medium text-gray-700;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
