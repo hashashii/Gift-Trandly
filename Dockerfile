@@ -42,4 +42,4 @@ RUN mkdir -p \
 
 RUN chmod -R 775 storage bootstrap/cache
 
-CMD ["sh", "-c", "php artisan serve --host=0.0.0.0 --port=${PORT:-10000}"]
+CMD ["sh", "-c", "php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-10000}"]
