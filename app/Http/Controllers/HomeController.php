@@ -5,16 +5,21 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Post;
 use Illuminate\Http\Request;
+use App\Models\ContactMessage;
 
 class HomeController extends Controller
 {
     public function index()
     {
-        $featured = Post::published()->with(['gifts', 'category'])
+        $featured = Post::published()
+            ->with(['gifts', 'category'])
             ->where('is_featured', true)
             ->latest('published_at')
             ->first()
-            ?? Post::published()->with(['gifts', 'category'])->latest('published_at')->first();
+            ?? Post::published()
+                ->with(['gifts', 'category'])
+                ->latest('published_at')
+                ->first();
 
         $latest = Post::published()
             ->when($featured, fn ($q) => $q->whereKeyNot($featured->id))
@@ -30,7 +35,13 @@ class HomeController extends Controller
         abort_unless($post->status === 'published', 404);
 
         $post->increment('views');
-        $post->load(['gifts', 'category', 'author']);
+
+        $post->load([
+            'gifts',
+            'category',
+            'author',
+            'sections',
+        ]);
 
         $related = Post::published()
             ->where('category_id', $post->category_id)
@@ -54,11 +65,16 @@ class HomeController extends Controller
 
     public function trending()
     {
-        $posts = Post::published()->orderByDesc('views')->paginate(9);
+        $posts = Post::published()
+            ->orderByDesc('views')
+            ->paginate(9);
 
         return view('site.category', [
-            'category' => new Category(['name' => 'Trending', 'slug' => 'trending']),
-            'posts'    => $posts,
+            'category' => new Category([
+                'name' => 'Trending',
+                'slug' => 'trending',
+            ]),
+            'posts' => $posts,
         ]);
     }
 
@@ -68,11 +84,15 @@ class HomeController extends Controller
 
         $posts = Post::published()
             ->when($term !== '', function ($q) use ($term) {
+
                 $q->where(function ($q) use ($term) {
+
                     $q->where('title', 'like', "%{$term}%")
-                      ->orWhere('excerpt', 'like', "%{$term}%")
-                      ->orWhere('body', 'like', "%{$term}%");
+                        ->orWhere('excerpt', 'like', "%{$term}%")
+                        ->orWhere('body', 'like', "%{$term}%");
+
                 });
+
             })
             ->latest('published_at')
             ->paginate(9)
@@ -86,8 +106,30 @@ class HomeController extends Controller
         return view('site.about');
     }
 
+    public function privacy()
+    {
+        return view('site.privacy');
+    }
+
     public function contact()
     {
         return view('site.contact');
     }
+
+    public function storeContact(Request $request)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255'],
+            'message' => ['required', 'string', 'max:5000'],
+        ]);
+
+        ContactMessage::create($data);
+
+        return back()->with(
+            'contact_success',
+            'Thanks for reaching out! Your message has been received.'
+        );
+    }
+
 }

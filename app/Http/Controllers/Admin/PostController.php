@@ -49,10 +49,47 @@ class PostController extends Controller
     {
         $data = $this->validated($request);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Separate Dynamic Sections
+        |--------------------------------------------------------------------------
+        */
+
+        $sections = $data['sections'] ?? [];
+        unset($data['sections']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create Post
+        |--------------------------------------------------------------------------
+        */
+
         $data['user_id'] = $request->user()->id;
         $data['cover_image'] = $this->cover($request, null);
 
         $post = Post::create($data);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Save Dynamic Sections
+        |--------------------------------------------------------------------------
+        */
+
+        foreach ($sections as $index => $section) {
+
+            $heading = trim($section['heading'] ?? '');
+            $content = trim($section['content'] ?? '');
+
+            if ($heading === '' || $content === '') {
+                continue;
+            }
+
+            $post->sections()->create([
+                'heading' => $heading,
+                'content' => $content,
+                'sort_order' => $index,
+            ]);
+        }
 
         return redirect()
             ->route('admin.posts.gifts.index', $post)
@@ -71,9 +108,54 @@ class PostController extends Controller
     {
         $data = $this->validated($request, $post);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Separate Dynamic Sections
+        |--------------------------------------------------------------------------
+        */
+
+        $sections = $data['sections'] ?? [];
+        unset($data['sections']);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Update Cover Image
+        |--------------------------------------------------------------------------
+        */
+
         $data['cover_image'] = $this->cover($request, $post);
 
+        /*
+        |--------------------------------------------------------------------------
+        | Update Post
+        |--------------------------------------------------------------------------
+        */
+
         $post->update($data);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Replace Existing Dynamic Sections
+        |--------------------------------------------------------------------------
+        */
+
+        $post->sections()->delete();
+
+        foreach ($sections as $index => $section) {
+
+            $heading = trim($section['heading'] ?? '');
+            $content = trim($section['content'] ?? '');
+
+            if ($heading === '' || $content === '') {
+                continue;
+            }
+
+            $post->sections()->create([
+                'heading' => $heading,
+                'content' => $content,
+                'sort_order' => $index,
+            ]);
+        }
 
         return redirect()
             ->route('admin.posts.index')
@@ -90,7 +172,12 @@ class PostController extends Controller
     private function validated(Request $request, ?Post $post = null): array
     {
         return $request->validate([
-            'title' => ['required', 'string', 'max:255'],
+
+            'title' => [
+                'required',
+                'string',
+                'max:255',
+            ],
 
             'slug' => [
                 'nullable',
@@ -99,34 +186,119 @@ class PostController extends Controller
                 Rule::unique('posts', 'slug')->ignore($post?->id),
             ],
 
-            'category_id' => ['nullable', 'exists:categories,id'],
-            'eyebrow' => ['nullable', 'string', 'max:60'],
-            'subtitle' => ['nullable', 'string', 'max:160'],
-            'excerpt' => ['nullable', 'string', 'max:600'],
-            'body' => ['nullable', 'string'],
-            'pull_quote' => ['nullable', 'string', 'max:255'],
-            'read_minutes' => ['required', 'integer', 'min:1', 'max:120'],
+            'category_id' => [
+                'nullable',
+                'exists:categories,id',
+            ],
+
+            'eyebrow' => [
+                'nullable',
+                'string',
+                'max:60',
+            ],
+
+            'subtitle' => [
+                'nullable',
+                'string',
+                'max:160',
+            ],
+
+            'excerpt' => [
+                'nullable',
+                'string',
+                'max:600',
+            ],
+
+            'body' => [
+                'nullable',
+                'string',
+            ],
+
+            'pull_quote' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'read_minutes' => [
+                'required',
+                'integer',
+                'min:1',
+                'max:120',
+            ],
 
             'status' => [
                 'required',
-                Rule::in(['draft', 'published']),
+                Rule::in([
+                    'draft',
+                    'published',
+                ]),
             ],
 
-            'published_at' => ['nullable', 'date'],
-            'is_featured' => ['nullable', 'boolean'],
-            'is_popular' => ['nullable', 'boolean'],
-            'meta_title' => ['nullable', 'string', 'max:255'],
-            'meta_description' => ['nullable', 'string', 'max:255'],
+            'published_at' => [
+                'nullable',
+                'date',
+            ],
+
+            'is_featured' => [
+                'nullable',
+                'boolean',
+            ],
+
+            'is_popular' => [
+                'nullable',
+                'boolean',
+            ],
+
+            'meta_title' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'meta_description' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Dynamic Article Sections
+            |--------------------------------------------------------------------------
+            */
+
+            'sections' => [
+                'nullable',
+                'array',
+            ],
+
+            'sections.*.heading' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'sections.*.content' => [
+                'nullable',
+                'string',
+            ],
 
         ]) + [
-            'is_featured' => $request->boolean('is_featured'),
-            'is_popular' => $request->boolean('is_popular'),
+
+            'is_featured' =>
+                $request->boolean('is_featured'),
+
+            'is_popular' =>
+                $request->boolean('is_popular'),
+
         ];
     }
 
     private function cover(Request $request, ?Post $post): ?string
     {
         $request->validate([
+
             'cover_file' => [
                 'nullable',
                 'image',
@@ -139,11 +311,12 @@ class PostController extends Controller
                 'url',
                 'max:2048',
             ],
+
         ]);
 
         /*
         |--------------------------------------------------------------------------
-        | Upload file directly to Cloudinary REST API
+        | Upload File To Cloudinary
         |--------------------------------------------------------------------------
         */
 
@@ -154,6 +327,7 @@ class PostController extends Controller
             $apiSecret = env('CLOUDINARY_API_SECRET');
 
             if (!$cloudName || !$apiKey || !$apiSecret) {
+
                 throw new \RuntimeException(
                     'Cloudinary environment variables are missing.'
                 );
@@ -164,9 +338,11 @@ class PostController extends Controller
             $folder = 'gifttrandly/covers';
 
             /*
-             * Cloudinary signature:
-             * parameters sorted alphabetically + API secret
-             */
+            |--------------------------------------------------------------------------
+            | Cloudinary Signature
+            |--------------------------------------------------------------------------
+            */
+
             $signatureString =
                 'folder=' . $folder .
                 '&timestamp=' . $timestamp .
@@ -179,7 +355,9 @@ class PostController extends Controller
             $response = Http::timeout(60)
                 ->attach(
                     'file',
-                    file_get_contents($file->getRealPath()),
+                    file_get_contents(
+                        $file->getRealPath()
+                    ),
                     $file->getClientOriginalName()
                 )
                 ->post(
@@ -199,17 +377,18 @@ class PostController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | External image URL
+        | External Image URL
         |--------------------------------------------------------------------------
         */
 
         if ($request->filled('cover_url')) {
+
             return $request->input('cover_url');
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Keep existing image
+        | Keep Existing Image
         |--------------------------------------------------------------------------
         */
 

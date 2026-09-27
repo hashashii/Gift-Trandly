@@ -9,6 +9,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\SubscriberController;
 use App\Models\Post;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\ContactMessageController as AdminContactMessageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,8 +30,14 @@ Route::get('/search', [HomeController::class, 'search'])
 Route::get('/about', [HomeController::class, 'about'])
     ->name('about');
 
+Route::get('/privacy-policy', [HomeController::class, 'privacy'])
+    ->name('privacy');
+
 Route::get('/contact', [HomeController::class, 'contact'])
     ->name('contact');
+
+Route::post('/contact', [HomeController::class, 'storeContact'])
+    ->name('contact.store');
 
 Route::post('/subscribe', [SubscriberController::class, 'store'])
     ->name('subscribe');
@@ -176,7 +183,13 @@ Route::middleware(['auth', 'admin'])
 
         Route::delete('subscribers/{subscriber}', [AdminSubscriberController::class, 'destroy'])
             ->name('subscribers.destroy');
+
+
+        Route::get('contact-messages', [AdminContactMessageController::class, 'index'])
+        ->name('contact-messages.index');
     });
+
+
 
 
 /*

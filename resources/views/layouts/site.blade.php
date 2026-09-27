@@ -121,7 +121,16 @@
     </div>
 
     <div class="border-t border-white/10 py-5 text-center text-xs text-white/50">
-        &copy; {{ date('Y') }} Gift Trandly. All rights reserved.
+
+        <p>
+            &copy; {{ date('Y') }} Gift Trandly. All rights reserved.
+            <span class="mx-2">•</span>
+            <a href="{{ route('privacy') }}"
+            class="transition hover:text-white">
+                Privacy Policy
+            </a>
+        </p>
+
     </div>
 </footer>
 
