@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Gift Trandly — Trending Gifts & Fashion Finds')</title>
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}?v=5">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('favicon.png') }}?v=5">
+    <link rel="apple-touch-icon" href="{{ asset('favicon.png') }}?v=5">
     <meta name="description" content="@yield('meta_description', 'Trending gift ideas, fashion finds and thoughtful picks for every occasion.')">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
