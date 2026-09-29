@@ -233,7 +233,7 @@
 
             {{-- Pinterest --}}
             <a
-                href="#"
+                href="https://www.pinterest.com/GiftTrendly/"
                 title="Pinterest"
                 aria-label="Pinterest"
                 class="grid h-9 w-9 place-items-center rounded-full bg-blush-50 text-blush-600 hover:bg-blush-500 hover:text-white"
@@ -251,7 +251,7 @@
 
             {{-- Instagram --}}
             <a
-                href="#"
+                href="https://www.instagram.com/gifttrandly/"
                 title="Instagram"
                 aria-label="Instagram"
                 class="grid h-9 w-9 place-items-center rounded-full bg-blush-50 text-blush-600 hover:bg-blush-500 hover:text-white"
