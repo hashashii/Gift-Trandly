@@ -11,18 +11,30 @@ use Illuminate\Validation\Rule;
 
 class PostController extends Controller
 {
+    /*
+    |--------------------------------------------------------------------------
+    | Posts List
+    |--------------------------------------------------------------------------
+    */
+
     public function index(Request $request)
     {
         $posts = Post::with(['category'])
             ->withCount('gifts')
-            ->when($request->q, fn ($q, $term) =>
-                $q->where('title', 'like', "%{$term}%")
+            ->when(
+                $request->q,
+                fn ($q, $term) =>
+                    $q->where('title', 'like', "%{$term}%")
             )
-            ->when($request->status, fn ($q, $status) =>
-                $q->where('status', $status)
+            ->when(
+                $request->status,
+                fn ($q, $status) =>
+                    $q->where('status', $status)
             )
-            ->when($request->category, fn ($q, $id) =>
-                $q->where('category_id', $id)
+            ->when(
+                $request->category,
+                fn ($q, $id) =>
+                    $q->where('category_id', $id)
             )
             ->latest()
             ->paginate(12)
@@ -34,6 +46,13 @@ class PostController extends Controller
         ]);
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create Post Form
+    |--------------------------------------------------------------------------
+    */
+
     public function create()
     {
         return view('admin.posts.form', [
@@ -44,6 +63,13 @@ class PostController extends Controller
             'categories' => Category::orderBy('name')->get(),
         ]);
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Store New Post
+    |--------------------------------------------------------------------------
+    */
 
     public function store(Request $request)
     {
@@ -76,7 +102,6 @@ class PostController extends Controller
         */
 
         foreach ($sections as $index => $section) {
-
             $heading = trim($section['heading'] ?? '');
             $content = trim($section['content'] ?? '');
 
@@ -91,10 +116,32 @@ class PostController extends Controller
             ]);
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | IndexNow - Notify Search Engines
+        |--------------------------------------------------------------------------
+        |
+        | Only submit publicly published posts.
+        |
+        */
+
+        if ($post->status === 'published') {
+            $this->submitToIndexNow(
+                route('post.show', $post)
+            );
+        }
+
         return redirect()
             ->route('admin.posts.gifts.index', $post)
             ->with('status', 'Post created. Now add the gift cards.');
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Edit Post Form
+    |--------------------------------------------------------------------------
+    */
 
     public function edit(Post $post)
     {
@@ -104,9 +151,29 @@ class PostController extends Controller
         ]);
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Update Post
+    |--------------------------------------------------------------------------
+    */
+
     public function update(Request $request, Post $post)
     {
         $data = $this->validated($request, $post);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Remember Old URL
+        |--------------------------------------------------------------------------
+        |
+        | If the slug changes, we can notify IndexNow about both the old URL
+        | and the new URL.
+        |
+        */
+
+        $oldUrl = route('post.show', $post);
+        $oldStatus = $post->status;
 
         /*
         |--------------------------------------------------------------------------
@@ -142,7 +209,6 @@ class PostController extends Controller
         $post->sections()->delete();
 
         foreach ($sections as $index => $section) {
-
             $heading = trim($section['heading'] ?? '');
             $content = trim($section['content'] ?? '');
 
@@ -157,20 +223,87 @@ class PostController extends Controller
             ]);
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | IndexNow - Notify Search Engines
+        |--------------------------------------------------------------------------
+        */
+
+        $post->refresh();
+
+        $newUrl = route('post.show', $post);
+
+        // Published post: notify IndexNow about current URL.
+        if ($post->status === 'published') {
+            $this->submitToIndexNow($newUrl);
+        }
+
+        /*
+        | If a previously published post becomes a draft,
+        | notify IndexNow about the old public URL.
+        */
+        if (
+            $oldStatus === 'published' &&
+            $post->status !== 'published'
+        ) {
+            $this->submitToIndexNow($oldUrl);
+        }
+
+        /*
+        | If the slug changed, notify IndexNow about the old URL too.
+        | Search engines can then recrawl it and detect its new state.
+        */
+        if (
+            $oldStatus === 'published' &&
+            $oldUrl !== $newUrl
+        ) {
+            $this->submitToIndexNow($oldUrl);
+        }
+
         return redirect()
             ->route('admin.posts.index')
             ->with('status', 'Post updated.');
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Delete Post
+    |--------------------------------------------------------------------------
+    */
+
     public function destroy(Post $post)
     {
+        /*
+        | Save URL before deleting the model.
+        */
+        $url = route('post.show', $post);
+        $wasPublished = $post->status === 'published';
+
         $post->delete();
+
+        /*
+        | IndexNow also supports notifying search engines when URLs
+        | have been deleted.
+        */
+        if ($wasPublished) {
+            $this->submitToIndexNow($url);
+        }
 
         return back()->with('status', 'Post deleted.');
     }
 
-    private function validated(Request $request, ?Post $post = null): array
-    {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Validation
+    |--------------------------------------------------------------------------
+    */
+
+    private function validated(
+        Request $request,
+        ?Post $post = null
+    ): array {
         return $request->validate([
 
             'title' => [
@@ -295,8 +428,17 @@ class PostController extends Controller
         ];
     }
 
-    private function cover(Request $request, ?Post $post): ?string
-    {
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cover Image
+    |--------------------------------------------------------------------------
+    */
+
+    private function cover(
+        Request $request,
+        ?Post $post
+    ): ?string {
         $request->validate([
 
             'cover_file' => [
@@ -321,20 +463,17 @@ class PostController extends Controller
         */
 
         if ($request->hasFile('cover_file')) {
-
             $cloudName = env('CLOUDINARY_CLOUD_NAME');
             $apiKey = env('CLOUDINARY_API_KEY');
             $apiSecret = env('CLOUDINARY_API_SECRET');
 
             if (!$cloudName || !$apiKey || !$apiSecret) {
-
                 throw new \RuntimeException(
                     'Cloudinary environment variables are missing.'
                 );
             }
 
             $timestamp = time();
-
             $folder = 'gifttrandly/covers';
 
             /*
@@ -382,7 +521,6 @@ class PostController extends Controller
         */
 
         if ($request->filled('cover_url')) {
-
             return $request->input('cover_url');
         }
 
@@ -393,5 +531,68 @@ class PostController extends Controller
         */
 
         return $post?->cover_image;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | IndexNow
+    |--------------------------------------------------------------------------
+    |
+    | Notifies IndexNow-supported search engines when a published URL
+    | is created, updated or deleted.
+    |
+    */
+
+    private function submitToIndexNow(string $url): void
+    {
+        $key = 'bb066ca48b264801a9ddd9a544d10e95';
+
+        try {
+            $response = Http::timeout(10)
+                ->post(
+                    'https://api.indexnow.org/indexnow',
+                    [
+                        'host' => 'gifttrandly.me',
+
+                        'key' => $key,
+
+                        'keyLocation' =>
+                            "https://gifttrandly.me/{$key}.txt",
+
+                        'urlList' => [
+                            $url,
+                        ],
+                    ]
+                );
+
+            /*
+            | Don't break article publishing if IndexNow itself
+            | temporarily fails.
+            */
+            if (!$response->successful()) {
+                \Log::warning(
+                    'IndexNow submission failed',
+                    [
+                        'url' => $url,
+                        'status' => $response->status(),
+                        'body' => $response->body(),
+                    ]
+                );
+            }
+
+        } catch (\Throwable $e) {
+            /*
+            | SEO notification failure should never prevent an
+            | admin from publishing/updating an article.
+            */
+            \Log::warning(
+                'IndexNow request error',
+                [
+                    'url' => $url,
+                    'error' => $e->getMessage(),
+                ]
+            );
+        }
     }
 }
