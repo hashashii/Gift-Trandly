@@ -1,6 +1,6 @@
 @extends('layouts.site')
 
-@section('title', 'Search | Gift Trandly')
+@section('title', 'Search | Gift Trendly')
 
 @section('content')
     <div class="mx-auto max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
