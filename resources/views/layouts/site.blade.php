@@ -8,7 +8,22 @@
     <link rel="shortcut icon" type="image/png" href="{{ asset('favicon.png') }}?v=5">
     <link rel="apple-touch-icon" href="{{ asset('favicon.png') }}?v=5">
     <meta name="description" content="@yield('meta_description', 'Trending gift ideas, fashion finds and thoughtful picks for every occasion.')">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <meta property="og:site_name" content="Gift Trandly">
+
+    @php
+        $websiteSchema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'WebSite',
+            'url' => 'https://gifttrandly.me/',
+            'name' => 'Gift Trandly',
+            'alternateName' => 'GiftTrandly',
+        ];
+    @endphp
+
+    <script type="application/ld+json">
+        {!! json_encode($websiteSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('head')
