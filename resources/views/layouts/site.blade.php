@@ -27,6 +27,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('head')
+
+<script>
+(function(s) {
+    s.dataset.zone = '12019830';
+    s.src = 'https://nap5k.com/tag.min.js';
+})([document.documentElement, document.body]
+    .filter(Boolean)
+    .pop()
+    .appendChild(document.createElement('script')));
+</script>
 </head>
 <body>
 
